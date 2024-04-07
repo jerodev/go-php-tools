@@ -2,37 +2,31 @@ package php
 
 import "testing"
 
-func TestSerializeArray(t *testing.T) {
-	expected := "a:3:{i:0;i:4;i:1;i:5;i:2;i:6;}"
-	if expected != Serialize([3]int{4, 5, 6}) {
-		t.Errorf("output did not match expecation, got %s", Serialize([3]int{4, 5, 6}))
-	}
+func testSerialize(t *testing.T, expectation string, data interface{}) {
+	valueString, _ := Serialize(data)
 
-	expected = "a:2:{i:0;i:1;i:1;i:2;}"
-	if expected != Serialize([]int{1, 2}) {
-		t.Errorf("output did not match expecation, got %s", Serialize([]int{1, 2}))
-	}
-
-	expected = "a:3:{i:0;a:2:{i:0;i:1;i:1;i:2;}i:1;a:2:{i:0;i:3;i:1;i:4;}i:2;a:1:{i:0;i:5;}}"
-	if expected != Serialize([][]int{{1, 2}, {3, 4}, {5}}) {
-		t.Errorf("output did not match expecation, got %s", Serialize([][]int{{1, 2}, {3, 4}, {5}}))
+	if valueString != expectation {
+		t.Errorf("expected %s, got %s", expectation, valueString)
 	}
 }
 
-func TestSerializeScalar(t *testing.T) {
-	trials := map[any]string{
-		nil:       "N;",
-		true:      "b:1;",
-		false:     "b:0;",
-		1.23:      "d:1.23;",
-		123:       "i:123;",
-		"foo-bar": "s:7:\"foo-bar\";",
-	}
+func TestSerializeArray(t *testing.T) {
+	testSerialize(t, "a:3:{i:0;i:4;i:1;i:5;i:2;i:6;}", [3]int{4, 5, 6})
+	testSerialize(t, "a:2:{i:0;i:1;i:1;i:2;}", []int{1, 2})
+	testSerialize(t, "a:3:{i:0;a:2:{i:0;i:1;i:1;i:2;}i:1;a:2:{i:0;i:3;i:1;i:4;}i:2;a:1:{i:0;i:5;}}", [][]int{{1, 2}, {3, 4}, {5}})
+}
 
-	for value, expectation := range trials {
-		result := Serialize(value)
-		if result != expectation {
-			t.Errorf("expected %s, got %s", expectation, result)
-		}
-	}
+func TestSerializeMap(t *testing.T) {
+	// Remember, map keys are sorted alphabetically because otherwise the order cannot be predicted
+	testSerialize(t, "a:2:{s:4:\"That\";i:18;s:4:\"This\";i:7;}", map[string]int{"This": 7, "That": 18})
+	testSerialize(t, "a:3:{s:5:\"Maybe\";s:9:\"Misschien\";s:2:\"No\";s:3:\"Nee\";s:3:\"Yes\";s:2:\"Ja\";}", map[string]string{"Yes": "Ja", "No": "Nee", "Maybe": "Misschien"})
+}
+
+func TestSerializeScalar(t *testing.T) {
+	testSerialize(t, "N;", nil)
+	testSerialize(t, "b:1;", true)
+	testSerialize(t, "b:0;", false)
+	testSerialize(t, "d:1.23;", 1.23)
+	testSerialize(t, "i:123;", 123)
+	testSerialize(t, "s:7:\"foo-bar\";", "foo-bar")
 }
