@@ -39,7 +39,9 @@ func Serialize(data interface{}) (string, error) {
 	case reflect.Map:
 		return serializeMap(data)
 	case reflect.String:
-		return "s:" + strconv.Itoa(len(data.(string))) + ":\"" + data.(string) + "\";", nil
+		return serializeString(data.(string)), nil
+	case reflect.Struct:
+		return serializeStruct(data)
 	case reflect.Uint:
 		return "i:" + strconv.Itoa(int(data.(uint))) + ";", nil
 	case reflect.Uint8:
@@ -117,4 +119,58 @@ func serializeMap(data interface{}) (string, error) {
 	}
 
 	return serialized.String() + "}", nil
+}
+
+func serializeString(value string) string {
+	return "s:" + strconv.Itoa(len(value)) + ":\"" + value + "\";"
+}
+
+func serializeStruct(data interface{}) (string, error) {
+	a := reflect.ValueOf(data)
+
+	var serialized strings.Builder
+	serialized.WriteString("O:")
+	serialized.WriteString(strconv.Itoa(len(a.Type().Name())))
+	serialized.WriteString(":\"")
+	serialized.WriteString(a.Type().Name())
+	serialized.WriteString("\":")
+	serialized.WriteString(strconv.Itoa(structFieldCount(a)))
+	serialized.WriteString(":{")
+
+	var field reflect.StructField
+	var keyString string
+	var valueString string
+	var err error
+	var ok bool
+	for i := range a.NumField() {
+		valueString, err = Serialize(a.Field(i).Interface())
+		if err != nil {
+			return "", err
+		}
+
+		field = a.Type().Field(i)
+		if keyString, ok = field.Tag.Lookup("php"); !ok {
+			keyString = field.Name
+		}
+		serialized.WriteString(serializeString(keyString))
+
+		serialized.WriteString(valueString)
+	}
+
+	serialized.WriteByte('}')
+
+	return serialized.String(), nil
+}
+
+func structFieldCount(data reflect.Value) int {
+	if data.Kind() != reflect.Struct || data.IsZero() {
+		return 1
+	}
+
+	count := 0
+	for i := 0; i < data.NumField(); i++ {
+		count += structFieldCount(data.Field(i))
+	}
+
+	return count
 }

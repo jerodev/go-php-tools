@@ -2,6 +2,13 @@ package php
 
 import "testing"
 
+type testStruct struct {
+	Name     string
+	LastName string `php:"last_name"`
+	Age      int8
+	Traits   []string
+}
+
 func testSerialize(t *testing.T, expectation string, data interface{}) {
 	valueString, _ := Serialize(data)
 
@@ -20,6 +27,20 @@ func TestSerializeMap(t *testing.T) {
 	// Remember, map keys are sorted alphabetically because otherwise the order cannot be predicted
 	testSerialize(t, "a:2:{s:4:\"That\";i:18;s:4:\"This\";i:7;}", map[string]int{"This": 7, "That": 18})
 	testSerialize(t, "a:3:{s:5:\"Maybe\";s:9:\"Misschien\";s:2:\"No\";s:3:\"Nee\";s:3:\"Yes\";s:2:\"Ja\";}", map[string]string{"Yes": "Ja", "No": "Nee", "Maybe": "Misschien"})
+}
+
+func TestSerializeObject(t *testing.T) {
+	obj := testStruct{
+		Name:     "Foo",
+		LastName: "Bar",
+		Age:      38,
+		Traits: []string{
+			"Fast",
+			"Slow",
+		},
+	}
+
+	testSerialize(t, "O:10:\"testStruct\":4:{s:4:\"Name\";s:3:\"Foo\";s:9:\"last_name\";s:3:\"Bar\";s:3:\"Age\";i:38;s:6:\"Traits\";a:2:{i:0;s:4:\"Fast\";i:1;s:4:\"Slow\";}}", obj)
 }
 
 func TestSerializeScalar(t *testing.T) {
