@@ -51,3 +51,20 @@ func TestSerializeScalar(t *testing.T) {
 	testSerialize(t, "i:123;", 123)
 	testSerialize(t, "s:7:\"foo-bar\";", "foo-bar")
 }
+
+func testUnserialize(t *testing.T, data string, expectation interface{}) {
+	var destination interface{}
+	err := Unserialize(data, &destination)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if destination != expectation {
+		t.Errorf("Expected %v, got %v", expectation, destination)
+	}
+}
+
+func TestUnserializeScalar(t *testing.T) {
+	testUnserialize(t, "i:3;", 3)
+	testUnserialize(t, "d:3.14;", 3.14)
+}

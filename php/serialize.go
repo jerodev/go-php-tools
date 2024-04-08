@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+// Serialize turns a Go value into a serialized PHP data string
 func Serialize(data interface{}) (string, error) {
 	if data == nil {
 		return "N;", nil
@@ -173,4 +174,62 @@ func structFieldCount(data reflect.Value) int {
 	}
 
 	return count
+}
+
+// Unserialize populates the destination from a serialized PHP data string
+func Unserialize(data string, destination *interface{}) error {
+	position := 0
+	return unserializeWalk(data, &position, destination)
+}
+
+func unserializeWalk(data string, position *int, destination *interface{}) error {
+	var err error
+	kind := data[*position]
+
+	switch kind {
+	case 'i':
+		*destination, err = unserializeInteger(data, position)
+	case 'd':
+		*destination, err = unserializeFloat(data, position)
+	}
+
+	return err
+}
+
+func unserializeFloat(data string, position *int) (float64, error) {
+	valueString, err := unserializeValue(data, position)
+	if err != nil {
+		return 0, err
+	}
+
+	return strconv.ParseFloat(valueString, 64)
+}
+
+func unserializeInteger(data string, position *int) (int, error) {
+	valueString, err := unserializeValue(data, position)
+	if err != nil {
+		return 0, err
+	}
+
+	return strconv.Atoi(valueString)
+}
+
+func unserializeValue(data string, position *int) (string, error) {
+	var startPosition int
+	for {
+		if len(data) == *position {
+			return "", ErrUnexpectedEndOfString
+		}
+
+		if data[*position] == ':' {
+			*position++
+			startPosition = *position
+		} else if data[*position] == ';' {
+			break
+		}
+
+		*position++
+	}
+
+	return data[startPosition:*position], nil
 }
