@@ -45,8 +45,8 @@ func TestSerializeObject(t *testing.T) {
 
 func TestSerializeScalar(t *testing.T) {
 	testSerialize(t, "N;", nil)
-	testSerialize(t, "b:1;", true)
 	testSerialize(t, "b:0;", false)
+	testSerialize(t, "b:1;", true)
 	testSerialize(t, "d:1.23;", 1.23)
 	testSerialize(t, "i:123;", 123)
 	testSerialize(t, "s:7:\"foo-bar\";", "foo-bar")
@@ -65,6 +65,10 @@ func testUnserialize(t *testing.T, data string, expectation interface{}) {
 }
 
 func TestUnserializeScalar(t *testing.T) {
-	testUnserialize(t, "i:3;", 3)
+	testUnserialize(t, "N;", nil)
+	testUnserialize(t, "b:0;", false)
+	testUnserialize(t, "b:1;", true)
 	testUnserialize(t, "d:3.14;", 3.14)
+	testUnserialize(t, "i:3;", 3)
+	testUnserialize(t, "s:7:\"foo-bar\";", "foo-bar")
 }

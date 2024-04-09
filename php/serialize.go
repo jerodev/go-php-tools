@@ -183,17 +183,41 @@ func Unserialize(data string, destination *interface{}) error {
 }
 
 func unserializeWalk(data string, position *int, destination *interface{}) error {
+	if data == "N;" {
+		return nil
+	}
+
 	var err error
 	kind := data[*position]
 
 	switch kind {
-	case 'i':
-		*destination, err = unserializeInteger(data, position)
+	case 'b':
+		*destination, err = unserializeBool(data, position)
 	case 'd':
 		*destination, err = unserializeFloat(data, position)
+	case 'i':
+		*destination, err = unserializeInteger(data, position)
+	case 's':
+		*destination, err = unserializeString(data, position)
 	}
 
 	return err
+}
+
+func unserializeBool(data string, position *int) (bool, error) {
+	valueString, err := unserializeValue(data, position)
+	if err != nil {
+		return false, err
+	}
+
+	switch valueString {
+	case "0":
+		return false, nil
+	case "1":
+		return true, nil
+	default:
+		return false, ErrUnexpectedToken{Position: *position - len(valueString)}
+	}
 }
 
 func unserializeFloat(data string, position *int) (float64, error) {
@@ -212,6 +236,20 @@ func unserializeInteger(data string, position *int) (int, error) {
 	}
 
 	return strconv.Atoi(valueString)
+}
+
+func unserializeString(data string, position *int) (string, error) {
+	valueString, err := unserializeValue(data, position)
+	if err != nil {
+		return "", err
+	}
+
+	// Validate that we have a nicely quoted string
+	if valueString[0] != '"' || valueString[len(valueString)-1] != '"' {
+		return valueString, fmt.Errorf("malformed string at position %v", *position-len(valueString))
+	}
+
+	return valueString[1 : len(valueString)-1], nil
 }
 
 func unserializeValue(data string, position *int) (string, error) {
