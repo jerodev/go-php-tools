@@ -1,6 +1,7 @@
 package php
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"slices"
@@ -177,43 +178,46 @@ func structFieldCount(data reflect.Value) int {
 }
 
 // Unserialize populates the destination from a serialized PHP data string
-func Unserialize(data string, destination *interface{}) error {
+func Unserialize(data string, destination interface{}) error {
 	position := 0
 	return unserializeWalk(data, &position, destination)
 }
 
-func unserializeWalk(data string, position *int, destination *interface{}) error {
-	if data == "N;" {
-		return nil
+func unserializeWalk(data string, position *int, destination interface{}) error {
+	rv := reflect.ValueOf(destination)
+	if rv.Kind() != reflect.Pointer || rv.IsNil() {
+		return errors.New("invalid destination")
 	}
+
+	dv := rv.Elem()
 
 	var err error
 	kind := data[*position]
 
 	switch kind {
 	case 'a':
-		*destination, err = unserializeArray(data, position)
+		err = unserializeArray(data, position, dv)
 	case 'b':
-		*destination, err = unserializeBool(data, position)
+		err = unserializeBool(data, position, dv)
 	case 'd':
-		*destination, err = unserializeFloat(data, position)
+		err = unserializeFloat(data, position, dv)
 	case 'i':
-		*destination, err = unserializeInteger(data, position)
+		err = unserializeInteger(data, position, dv)
 	case 's':
-		*destination, err = unserializeString(data, position)
+		err = unserializeString(data, position, dv)
 	}
 
 	return err
 }
 
-func unserializeArray(data string, position *int) (interface{}, error) {
+func unserializeArray(data string, position *int, dv reflect.Value) error {
 	// Get array size
 	*position += 2
 	startPosition := *position
 	continueUntilCharacter(data, ':', position)
 	arrayLength, err := strconv.Atoi(data[startPosition:*position])
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Skip the ":{"
@@ -254,7 +258,9 @@ func unserializeArray(data string, position *int) (interface{}, error) {
 			array = append(array, values[i])
 		}
 
-		return array, nil
+		dv.Set(reflect.ValueOf(array))
+
+		return nil
 	}
 
 	array := make(map[interface{}]interface{}, arrayLength)
@@ -262,59 +268,77 @@ func unserializeArray(data string, position *int) (interface{}, error) {
 		array[keys[i]] = values[i]
 	}
 
-	return array, nil
+	dv.Set(reflect.ValueOf(array))
+
+	return nil
 }
 
-func unserializeBool(data string, position *int) (bool, error) {
+func unserializeBool(data string, position *int, dv reflect.Value) error {
 	valueString, err := unserializeValue(data, position)
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	switch valueString {
-	case "0":
-		return false, nil
-	case "1":
-		return true, nil
-	default:
-		return false, ErrUnexpectedToken{Position: *position - len(valueString)}
+	value := false
+	if valueString == "1" {
+		value = true
 	}
+
+	dv.SetBool(value)
+
+	return nil
 }
 
-func unserializeFloat(data string, position *int) (float64, error) {
+func unserializeFloat(data string, position *int, dv reflect.Value) error {
 	valueString, err := unserializeValue(data, position)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return strconv.ParseFloat(valueString, 64)
+	value, err := strconv.ParseFloat(valueString, 64)
+	if err != nil {
+		return err
+	}
+
+	dv.SetFloat(value)
+
+	return nil
 }
 
-func unserializeInteger(data string, position *int) (int, error) {
+func unserializeInteger(data string, position *int, dv reflect.Value) error {
 	valueString, err := unserializeValue(data, position)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return strconv.Atoi(valueString)
+	value, err := strconv.Atoi(valueString)
+	if err != nil {
+		return err
+	}
+
+	dv.SetInt(int64(value))
+
+	return nil
 }
 
-func unserializeString(data string, position *int) (string, error) {
+func unserializeString(data string, position *int, dv reflect.Value) error {
 	// Skip string length, maybe later validate this?
 	continueUntilCharacter(data, ':', position)
 	*position++
 
 	valueString, err := unserializeValue(data, position)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	// Validate that we have a nicely quoted string
 	if valueString[0] != '"' || valueString[len(valueString)-1] != '"' {
-		return valueString, fmt.Errorf("malformed string at position %v", *position-len(valueString))
+		return fmt.Errorf("malformed string at position %v", *position-len(valueString))
 	}
 
-	return valueString[1 : len(valueString)-1], nil
+	dv.SetString(valueString[1 : len(valueString)-1])
+
+	return nil
 }
 
 func unserializeValue(data string, position *int) (string, error) {
