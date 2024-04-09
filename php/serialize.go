@@ -191,6 +191,8 @@ func unserializeWalk(data string, position *int, destination *interface{}) error
 	kind := data[*position]
 
 	switch kind {
+	case 'a':
+		*destination, err = unserializeArray(data, position)
 	case 'b':
 		*destination, err = unserializeBool(data, position)
 	case 'd':
@@ -202,6 +204,65 @@ func unserializeWalk(data string, position *int, destination *interface{}) error
 	}
 
 	return err
+}
+
+func unserializeArray(data string, position *int) (interface{}, error) {
+	// Get array size
+	*position += 2
+	startPosition := *position
+	continueUntilCharacter(data, ':', position)
+	arrayLength, err := strconv.Atoi(data[startPosition:*position])
+	if err != nil {
+		return nil, err
+	}
+
+	// Skip the ":{"
+	*position += 2
+
+	keys := make([]interface{}, arrayLength)
+	values := make([]interface{}, arrayLength)
+
+	isAssociative := false
+	for i := range arrayLength {
+		unserializeWalk(data, position, &keys[i])
+		if data[*position] == ';' {
+			*position++
+		}
+
+		unserializeWalk(data, position, &values[i])
+		if data[*position] == ';' {
+			*position++
+		}
+
+		// Test if array is associative
+		if !isAssociative {
+			kind := reflect.ValueOf(keys[i]).Kind()
+			if kind != reflect.Int || keys[i] != i {
+				isAssociative = true
+			}
+		}
+	}
+
+	// Continue until the array is over
+	continueUntilCharacter(data, '}', position)
+	*position++
+
+	// Consecutive keys detected, create a simple array
+	if !isAssociative {
+		array := make([]interface{}, 0, arrayLength)
+		for i := range arrayLength {
+			array = append(array, values[i])
+		}
+
+		return array, nil
+	}
+
+	array := make(map[interface{}]interface{}, arrayLength)
+	for i := range keys {
+		array[keys[i]] = values[i]
+	}
+
+	return array, nil
 }
 
 func unserializeBool(data string, position *int) (bool, error) {
@@ -239,6 +300,10 @@ func unserializeInteger(data string, position *int) (int, error) {
 }
 
 func unserializeString(data string, position *int) (string, error) {
+	// Skip string length, maybe later validate this?
+	continueUntilCharacter(data, ':', position)
+	*position++
+
 	valueString, err := unserializeValue(data, position)
 	if err != nil {
 		return "", err
@@ -253,21 +318,26 @@ func unserializeString(data string, position *int) (string, error) {
 }
 
 func unserializeValue(data string, position *int) (string, error) {
-	var startPosition int
+	continueUntilCharacter(data, ':', position)
+	startPosition := *position
+
+	continueUntilCharacter(data, ';', position)
+
+	return data[startPosition+1 : *position], nil
+}
+
+func continueUntilCharacter(data string, destination byte, position *int) error {
 	for {
 		if len(data) == *position {
-			return "", ErrUnexpectedEndOfString
+			return ErrUnexpectedEndOfString
 		}
 
-		if data[*position] == ':' {
-			*position++
-			startPosition = *position
-		} else if data[*position] == ';' {
+		if data[*position] == destination {
 			break
 		}
 
 		*position++
 	}
 
-	return data[startPosition:*position], nil
+	return nil
 }

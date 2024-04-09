@@ -1,6 +1,8 @@
 package php
 
-import "testing"
+import (
+	"testing"
+)
 
 type testStruct struct {
 	Name     string
@@ -56,7 +58,7 @@ func testUnserialize(t *testing.T, data string, expectation interface{}) {
 	var destination interface{}
 	err := Unserialize(data, &destination)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal(err, data, expectation)
 	}
 
 	if destination != expectation {
@@ -71,4 +73,39 @@ func TestUnserializeScalar(t *testing.T) {
 	testUnserialize(t, "d:3.14;", 3.14)
 	testUnserialize(t, "i:3;", 3)
 	testUnserialize(t, "s:7:\"foo-bar\";", "foo-bar")
+}
+
+func TestUnserializeArray(t *testing.T) {
+	var destination interface{}
+	Unserialize("a:3:{i:0;i:4;i:1;i:5;i:2;i:6;}", &destination)
+	if len(destination.([]interface{})) != 3 || destination.([]interface{})[0] != 4 || destination.([]interface{})[1] != 5 || destination.([]interface{})[2] != 6 {
+		t.Error("Unexpected result:", destination)
+	}
+
+	Unserialize("a:2:{i:0;i:1;i:1;i:2;}", &destination)
+	if len(destination.([]interface{})) != 2 || destination.([]interface{})[0] != 1 || destination.([]interface{})[1] != 2 {
+		t.Error("Unexpected result:", destination)
+	}
+
+	Unserialize("a:3:{i:0;a:2:{i:0;i:1;i:1;i:2;}i:1;a:2:{i:0;i:3;i:1;i:4;}i:2;a:1:{i:0;i:5;}}", &destination)
+	if len(destination.([]interface{})) != 3 ||
+		destination.([]interface{})[0].([]interface{})[0] != 1 || destination.([]interface{})[0].([]interface{})[1] != 2 ||
+		destination.([]interface{})[1].([]interface{})[0] != 3 || destination.([]interface{})[1].([]interface{})[1] != 4 ||
+		destination.([]interface{})[2].([]interface{})[0] != 5 {
+		t.Error("Unexpected result:", destination)
+	}
+}
+
+func TestUnserializeMap(t *testing.T) {
+	t.Skip("Not implemented yet")
+
+	var destination interface{}
+	Unserialize("a:2:{s:4:\"That\";i:18;s:4:\"This\";i:7;}", &destination)
+	if len(destination.([]interface{})) != 3 || destination.([]interface{})[0] != 4 || destination.([]interface{})[1] != 5 || destination.([]interface{})[2] != 6 {
+		t.Error("Unexpected result:", destination)
+	}
+
+	// Remember, map keys are sorted alphabetically because otherwise the order cannot be predicted
+	testUnserialize(t, "a:2:{s:4:\"That\";i:18;s:4:\"This\";i:7;}", map[string]int{"This": 7, "That": 18})
+	testUnserialize(t, "a:3:{s:5:\"Maybe\";s:9:\"Misschien\";s:2:\"No\";s:3:\"Nee\";s:3:\"Yes\";s:2:\"Ja\";}", map[string]string{"Yes": "Ja", "No": "Nee", "Maybe": "Misschien"})
 }
