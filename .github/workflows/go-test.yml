@@ -2,6 +2,8 @@ name: Go testing
 
 on:
   push:
+    branches: 
+      - master
   pull_request:
 
 jobs:
