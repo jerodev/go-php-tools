@@ -35,8 +35,8 @@ jobs:
       - name: Setup Laravel
         run: |
             cp laratest/.env.example laratest/.env
-            sed -i 's/APP_KEY=/APP_KEY=abc123/' .env
-            sed -i 's/QUEUE_CONNECTION=database/QUEUE_CONNECTION=redis/' .env
+            sed -i 's/APP_KEY=/APP_KEY=abc123/' laratest/.env
+            sed -i 's/QUEUE_CONNECTION=database/QUEUE_CONNECTION=redis/' laratest/.env
             cp testscripts/laravel/LaravelTestJob.php laratest/app/Jobs/LaravelTestJob.php
 
       - uses: actions/setup-go@v5
@@ -55,7 +55,7 @@ jobs:
       - name: Queue & Handle
         run: |
             go run testscripts/laravel/queue.go
-            php laratest/artisan queue:work --once
+            php laratest/artisan queue:work --once -stop-when-empty
 
       - name: Assert job ran
         if: ${{ hashFiles('laratest/app/Jobs/foo_bar') != '' }}
