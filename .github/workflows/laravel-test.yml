@@ -10,7 +10,7 @@ jobs:
   test:
     name: Redis Queue Test
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 4
 
     services:
       redis:
@@ -59,7 +59,7 @@ jobs:
       - name: Queue & Handle
         run: |
             go run testscripts/laravel/queue.go
-            php laratest/artisan queue:work --once -stop-when-empty
+            timeout 10s php laratest/artisan queue:work --once --stop-when-empty
 
       - name: Assert job ran
         if: ${{ hashFiles('laratest/app/Jobs/foo_bar') != '' }}
