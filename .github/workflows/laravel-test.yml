@@ -62,5 +62,9 @@ jobs:
             timeout 10s php laratest/artisan queue:work --once --stop-when-empty
 
       - name: Assert job ran
-        if: ${{ hashFiles('laratest/app/Jobs/foo_bar') != '' }}
-        run: exit 1
+        run: |
+          if [ ${{ hashFiles('laratest/app/Jobs/foo_bar') != '' }} ]; then
+            exit 1
+          else
+            exit 0
+          fi
