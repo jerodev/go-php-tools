@@ -33,7 +33,7 @@ jobs:
       - name: Setup Laravel
         run: |
             cp laratest/.env.example laratest/.env
-            php laratest/artisan key:generate
+            sed -i 's/APP_KEY=/APP_KEY=abc123'
             sed -i 's/QUEUE_CONNECTION=database/QUEUE_CONNECTION=redis'
             cp testscripts/laravel/LaravelTestJob.php laratest/app/Jobs/LaravelTestJob.php
 
