@@ -5,8 +5,14 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+type Job struct {
+	Contents string `php:"contents"`
+}
+
 func main() {
-	job := laravel.NewQueueJob("App\\Jobs\\LaravelTestJob", nil)
+	job := laravel.NewQueueJob("App\\Jobs\\LaravelTestJob", Job{
+		Contents: "Lorem Ipsum",
+	})
 
 	conn := laravel.NewRedisQueueClient(&redis.Options{
 		Addr:     "localhost:6379",
