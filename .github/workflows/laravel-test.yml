@@ -38,6 +38,7 @@ jobs:
             sed -i 's/APP_NAME=Laravel/APP_NAME=LaraQueue/' laratest/.env
             sed -i 's/APP_KEY=/APP_KEY=abc123/' laratest/.env
             sed -i 's/QUEUE_CONNECTION=database/QUEUE_CONNECTION=redis/' laratest/.env
+            sed -i 's/REDIS_HOST=127.0.0.1/REDIS_HOST=redis/' laratest/.env
             mkdir laratest/app/Jobs
             cp testscripts/laravel/LaravelTestJob.php laratest/app/Jobs/LaravelTestJob.php
 
@@ -59,9 +60,8 @@ jobs:
 
       - name: Queue & Handle
         run: |
-            php laratest/artisan queue:work --once &
             go run testscripts/laravel/queue.go
-            sleep 5s
+            timeout 5s php laratest/artisan queue:work --once
             cat laratest/app/Jobs/foo_bar
 
       - name: Dump Laravel logs
