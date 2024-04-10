@@ -53,6 +53,9 @@ jobs:
           extensions: redis
           tools: composer:v2
 
+      - name: Install dependencies
+        run: composer install --no-interaction
+
       - name: Queue & Handle
         run: |
             go run testscripts/laravel/queue.go
