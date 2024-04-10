@@ -37,6 +37,7 @@ jobs:
             cp laratest/.env.example laratest/.env
             sed -i 's/APP_KEY=/APP_KEY=abc123/' laratest/.env
             sed -i 's/QUEUE_CONNECTION=database/QUEUE_CONNECTION=redis/' laratest/.env
+            mkdir laratest/app/Jobs
             cp testscripts/laravel/LaravelTestJob.php laratest/app/Jobs/LaravelTestJob.php
 
       - uses: actions/setup-go@v5
