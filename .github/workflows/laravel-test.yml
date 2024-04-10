@@ -1,0 +1,60 @@
+name: Laravel testing
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: Redis Queue Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    services:
+      redis:
+        image: redis
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Checkout Laravel
+        uses: actions/checkout@v4
+        with:
+          repository: 'laravel/laravel'
+          ref: '11.x'
+          path: 'laratest'
+
+      - name: Setup Laravel
+        run: |
+            cp laratest/.env.example laratest/.env
+            php laratest/artisan key:generate
+            sed -i 's/QUEUE_CONNECTION=database/QUEUE_CONNECTION=redis'
+            cp testscripts/laravel/LaravelTestJob.php laratest/app/Jobs/LaravelTestJob.php
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '^1.22'
+          cache: false
+      
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.3
+          coverage: none
+          extensions: redis
+          tools: composer:v2
+
+      - name: Queue & Handle
+        run: |
+            go run testscripts/laravel/queue.go
+            php laratest/artisan queue:work --once
+
+      - name: Assert job ran
+        if: ${{ hashFiles('laratest/app/Jobs/foo_bar') != '' }}
+        run: exit 1
