@@ -63,3 +63,8 @@ jobs:
             go run testscripts/laravel/queue.go
             sleep 5s
             cat laratest/app/Jobs/foo_bar
+
+      - name: Dump Laravel logs
+        if: failure()
+        run: cat laratest/storage/logs/laravel.log
+
