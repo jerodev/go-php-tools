@@ -3,6 +3,7 @@ package laravel
 import (
 	"context"
 	"encoding/json"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jerodev/go-php-tools/php"
@@ -69,28 +70,31 @@ type QueueConnection interface {
 }
 
 type RedisQueueConnection struct {
-	client redis.Client
+	client         redis.Client
+	laravelAppName string
 }
 
 func (c RedisQueueConnection) Dispatch(job QueueJob) {
+	queueName := strings.ToLower(strings.ReplaceAll(c.laravelAppName, " ", "_")) + "_database_queues:" + job.Queue
 	payload, _ := json.Marshal(job.CreateJobPayload())
 
 	c.client.RPush(
 		context.Background(),
-		job.Queue,
+		queueName,
 		string(payload),
 	)
 
 	c.client.RPush(
 		context.Background(),
-		job.Queue+":notify",
+		queueName+":notify",
 		1,
 	)
 }
 
-func NewRedisQueueClient(opts *redis.Options) RedisQueueConnection {
+func NewRedisQueueClient(laravelAppName string, opts *redis.Options) RedisQueueConnection {
 	return RedisQueueConnection{
-		client: *redis.NewClient(opts),
+		client:         *redis.NewClient(opts),
+		laravelAppName: laravelAppName,
 	}
 }
 
