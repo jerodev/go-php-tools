@@ -48,7 +48,6 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '^1.22'
-          cache: false
       
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -65,7 +64,7 @@ jobs:
         run: |
           go run testscripts/laravel/queueTest.go
           timeout 5s php laratest/artisan queue:work --once
-          cat laratest/app/Jobs/foo_bar | grep $TEST_CONTENT
+          cat laratest/app/Jobs/foo_bar | grep "$TEST_CONTENT"
 
       - name: Dump Laravel logs
         if: failure()
