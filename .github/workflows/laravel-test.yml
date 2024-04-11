@@ -57,12 +57,13 @@ jobs:
           tools: composer:v2
 
       - name: Install dependencies
-        run: cd laratest && composer install --no-interaction
+        run: cd laratest && composer install --no-interaction --no-scripts --no-dev
 
       - name: Queue & Handle
         run: |
+            php laratest/artisan queue:work --once &
             go run testscripts/laravel/queue.go
-            timeout 5s php laratest/artisan queue:work --once
+            sleep 5s
             cat laratest/app/Jobs/foo_bar
 
       - name: Dump Laravel logs

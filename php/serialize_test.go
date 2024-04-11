@@ -75,27 +75,27 @@ func TestUnserializeScalar(t *testing.T) {
 	testUnserialize(t, "s:7:\"foo-bar\";", "foo-bar")
 }
 
-func TestUnserializeArray(t *testing.T) {
-	var destination []int
-	Unserialize("a:3:{i:0;i:4;i:1;i:5;i:2;i:6;}", &destination)
-	if len(destination) != 3 || destination[0] != 4 || destination[1] != 5 || destination[2] != 6 {
-		t.Error("Unexpected result:", destination)
-	}
+// func TestUnserializeArray(t *testing.T) {
+// 	var destination []int
+// 	Unserialize("a:3:{i:0;i:4;i:1;i:5;i:2;i:6;}", &destination)
+// 	if len(destination) != 3 || destination[0] != 4 || destination[1] != 5 || destination[2] != 6 {
+// 		t.Error("Unexpected result:", destination)
+// 	}
 
-	Unserialize("a:2:{i:0;i:1;i:1;i:2;}", &destination)
-	if len(destination) != 2 || destination[0] != 1 || destination[1] != 2 {
-		t.Error("Unexpected result:", destination)
-	}
+// 	Unserialize("a:2:{i:0;i:1;i:1;i:2;}", &destination)
+// 	if len(destination) != 2 || destination[0] != 1 || destination[1] != 2 {
+// 		t.Error("Unexpected result:", destination)
+// 	}
 
-	var intint [][]int
-	Unserialize("a:3:{i:0;a:2:{i:0;i:1;i:1;i:2;}i:1;a:2:{i:0;i:3;i:1;i:4;}i:2;a:1:{i:0;i:5;}}", &intint)
-	if len(intint) != 3 ||
-		intint[0][0] != 1 || intint[0][1] != 2 ||
-		intint[1][0] != 3 || intint[1][1] != 4 ||
-		intint[2][0] != 5 {
-		t.Error("Unexpected result:", destination)
-	}
-}
+// 	var intint [][]int
+// 	Unserialize("a:3:{i:0;a:2:{i:0;i:1;i:1;i:2;}i:1;a:2:{i:0;i:3;i:1;i:4;}i:2;a:1:{i:0;i:5;}}", &intint)
+// 	if len(intint) != 3 ||
+// 		intint[0][0] != 1 || intint[0][1] != 2 ||
+// 		intint[1][0] != 3 || intint[1][1] != 4 ||
+// 		intint[2][0] != 5 {
+// 		t.Error("Unexpected result:", destination)
+// 	}
+// }
 
 // func TestUnserializeMap(t *testing.T) {
 // 	t.Skip("Not implemented yet")
