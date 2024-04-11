@@ -11,6 +11,11 @@ jobs:
     name: Redis Queue Test
     runs-on: ubuntu-latest
     timeout-minutes: 4
+    env:
+      APP_NAME: LaraQueue
+      APP_KEY: abc123
+      QUEUE_CONNECTION: redis
+      TEST_CONTENT: Lorem Ipsum
 
     services:
       redis:
@@ -37,9 +42,6 @@ jobs:
       - name: Setup Laravel
         run: |
             cp laratest/.env.example laratest/.env
-            sed -i 's/APP_NAME=Laravel/APP_NAME=LaraQueue/' laratest/.env
-            sed -i 's/APP_KEY=/APP_KEY=abc123/' laratest/.env
-            sed -i 's/QUEUE_CONNECTION=database/QUEUE_CONNECTION=redis/' laratest/.env
             mkdir laratest/app/Jobs
             cp testscripts/laravel/LaravelTestJob.php laratest/app/Jobs/LaravelTestJob.php
 
@@ -61,9 +63,9 @@ jobs:
 
       - name: Queue & Handle
         run: |
-            go run testscripts/laravel/queueTest.go
-            timeout 5s php laratest/artisan queue:work --once
-            cat laratest/app/Jobs/foo_bar
+          go run testscripts/laravel/queueTest.go
+          timeout 5s php laratest/artisan queue:work --once
+          cat laratest/app/Jobs/foo_bar | grep $TEST_CONTENT
 
       - name: Dump Laravel logs
         if: failure()

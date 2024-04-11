@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	"github.com/jerodev/go-php-tools/laravel"
 	"github.com/redis/go-redis/v9"
 )
@@ -11,7 +13,7 @@ type Job struct {
 
 func main() {
 	job := laravel.NewQueueJob("App\\Jobs\\LaravelTestJob", Job{
-		Contents: "Lorem Ipsum",
+		Contents: os.Getenv("TEST_CONTENT"),
 	})
 
 	conn := laravel.NewRedisQueueClient("LaraQueue", &redis.Options{
