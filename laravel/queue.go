@@ -3,6 +3,7 @@ package laravel
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -38,6 +39,9 @@ func (j *QueueJob) WithTimeout(t int) *QueueJob {
 
 func (j QueueJob) CreateJobPayload() JobPayload {
 	data, _ := php.Serialize(j.Payload)
+
+	jobClassString := "O:" + strconv.Itoa(len(j.JobClass)) + ":\"" + j.JobClass + "\":"
+	data = strings.Replace(data, "O:3:\"Job\":", jobClassString, 1)
 
 	return JobPayload{
 		Uuid:          uuid.New().String(),

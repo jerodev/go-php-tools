@@ -61,9 +61,8 @@ jobs:
 
       - name: Queue & Handle
         run: |
-            php laratest/artisan queue:work --once &
-            go run testscripts/laravel/queue.go
-            sleep 5s
+            go run testscripts/laravel/queueTest.go
+            timeout 5s php laratest/artisan queue:work --once
             cat laratest/app/Jobs/foo_bar
 
       - name: Dump Laravel logs
