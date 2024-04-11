@@ -84,12 +84,12 @@ type QueueConnection interface {
 }
 
 type RedisQueueConnection struct {
-	client         redis.Client
-	laravelAppName string
+	client redis.Client
+	prefix string
 }
 
 func (c RedisQueueConnection) Dispatch(job QueueJob) {
-	queueName := strings.ToLower(strings.ReplaceAll(c.laravelAppName, " ", "_")) + "_database_queues:" + job.Queue
+	queueName := c.prefix + job.Queue
 	payload, _ := json.Marshal(job.createJobPayload())
 
 	c.client.RPush(
@@ -107,8 +107,8 @@ func (c RedisQueueConnection) Dispatch(job QueueJob) {
 
 func NewRedisQueueClient(laravelAppName string, opts *redis.Options) RedisQueueConnection {
 	return RedisQueueConnection{
-		client:         *redis.NewClient(opts),
-		laravelAppName: laravelAppName,
+		client: *redis.NewClient(opts),
+		prefix: strings.ToLower(strings.ReplaceAll(laravelAppName, " ", "_")) + "_database_queues:",
 	}
 }
 
