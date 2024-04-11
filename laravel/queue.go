@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jerodev/go-php-tools/php"
@@ -41,10 +42,12 @@ func (j QueueJob) CreateJobPayload() JobPayload {
 	data, _ := php.Serialize(j.Payload)
 
 	jobClassString := "O:" + strconv.Itoa(len(j.JobClass)) + ":\"" + j.JobClass + "\":"
-	data = strings.Replace(data, "O:3:\"Job\":", jobClassString, 1)
+	data = jobClassString + data[len("O:3:\"Job\":"):]
+
+	id := uuid.New()
 
 	return JobPayload{
-		Uuid:          uuid.New().String(),
+		Uuid:          id.String(),
 		DisplayName:   j.JobClass,
 		Job:           "Illuminate\\Queue\\CallQueuedHandler@call",
 		MaxTries:      j.MaxTries,
@@ -57,6 +60,10 @@ func (j QueueJob) CreateJobPayload() JobPayload {
 			CommandName: j.JobClass,
 			Command:     data,
 		},
+		Id:       id.String(),
+		Attepmts: 0,
+		Type:     "job",
+		PushedAt: strconv.Itoa(int(time.Now().UnixMicro())),
 	}
 }
 
@@ -113,6 +120,12 @@ type JobPayload struct {
 	Timeout       *int           `json:"timeout"`
 	RetryUntil    *int           `json:"retryUntil"`
 	Data          JobPayloadData `json:"data"`
+	Id            string         `json:"id"`
+	Attepmts      int            `json:"attempts"`
+	Type          string         `json:"type"`
+	Tags          []string       `json:"tags"`
+	Silenced      bool           `json:"slicenced"`
+	PushedAt      string         `json:"pushedAt"`
 }
 
 type JobPayloadData struct {
