@@ -41,7 +41,6 @@ jobs:
 
       - name: Setup Laravel
         run: |
-            cp laratest/.env.example laratest/.env
             mkdir laratest/app/Jobs
             cp testscripts/laravel/LaravelTestJob.php laratest/app/Jobs/LaravelTestJob.php
 
