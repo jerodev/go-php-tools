@@ -47,10 +47,10 @@ func (j QueueJob) createJobPayload() jobPayload {
 	jobClassString := "O:" + strconv.Itoa(len(j.JobClass)) + ":\"" + j.JobClass + "\":"
 	data = jobClassString + data[len("O:3:\"Job\":"):]
 
-	id := uuid.New()
+	id := uuid.New().String()
 
 	return jobPayload{
-		Uuid:          id.String(),
+		Uuid:          id,
 		DisplayName:   j.JobClass,
 		Job:           "Illuminate\\Queue\\CallQueuedHandler@call",
 		MaxTries:      j.MaxTries,
@@ -63,7 +63,7 @@ func (j QueueJob) createJobPayload() jobPayload {
 			CommandName: j.JobClass,
 			Command:     data,
 		},
-		Id:       id.String(),
+		Id:       id,
 		Attepmts: 0,
 		Type:     "job",
 		PushedAt: strconv.Itoa(int(time.Now().UnixMicro())),
@@ -92,14 +92,16 @@ func (c RedisQueueConnection) Dispatch(job QueueJob) {
 	queueName := c.prefix + job.Queue
 	payload, _ := json.Marshal(job.createJobPayload())
 
+	ctx := context.Background()
+
 	c.client.RPush(
-		context.Background(),
+		ctx,
 		queueName,
 		string(payload),
 	)
 
 	c.client.RPush(
-		context.Background(),
+		ctx,
 		queueName+":notify",
 		1,
 	)
