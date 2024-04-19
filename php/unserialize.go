@@ -6,6 +6,10 @@ import (
 	"strconv"
 )
 
+var (
+	ErrMustBeWriteable = errors.New("destination must be a writeable pointer")
+)
+
 func Unserialize(input string, dest interface{}) error {
 	position := 0
 
@@ -15,7 +19,7 @@ func Unserialize(input string, dest interface{}) error {
 func unserializeWalk(input string, position *int, dest interface{}) error {
 	rDest := reflect.ValueOf(dest)
 	if rDest.Kind() != reflect.Pointer || !rDest.Elem().CanSet() {
-		return errors.New("destination must be a writeable pointer")
+		return ErrMustBeWriteable
 	}
 
 	if input == "N;" {

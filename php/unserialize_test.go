@@ -1,6 +1,16 @@
 package php
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
+
+func TestUnserializeError(t *testing.T) {
+	err := Unserialize("i:9;", 8)
+	if !errors.Is(err, ErrMustBeWriteable) {
+		t.Errorf("Expected ErrMustBeWriteable, got %s", err.Error())
+	}
+}
 
 func TestUnserializeScalar(t *testing.T) {
 	var pointer *int
