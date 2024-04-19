@@ -12,7 +12,7 @@ type Job struct {
 }
 
 func main() {
-	job := laravel.NewQueueJob("App\\Jobs\\LaravelTestJob", Job{
+	job, _ := laravel.NewQueueJob("App\\Jobs\\LaravelTestJob", Job{
 		Contents: os.Getenv("TEST_CONTENT"),
 	})
 

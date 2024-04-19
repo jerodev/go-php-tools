@@ -3,6 +3,8 @@ package laravel
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -42,10 +44,11 @@ func (j *QueueJob) WithTimeout(t int) *QueueJob {
 }
 
 func (j QueueJob) createJobPayload() jobPayload {
+	refl := reflect.ValueOf(j.Payload)
 	data, _ := php.Serialize(j.Payload)
 
 	jobClassString := "O:" + strconv.Itoa(len(j.JobClass)) + ":\"" + j.JobClass + "\":"
-	data = jobClassString + data[len("O:3:\"Job\":"):]
+	data = jobClassString + data[len(refl.Type().Name())+len("O:3:\"\":"):]
 
 	id := uuid.New().String()
 
@@ -70,13 +73,17 @@ func (j QueueJob) createJobPayload() jobPayload {
 	}
 }
 
-func NewQueueJob(jobClass string, payload interface{}) *QueueJob {
+func NewQueueJob(jobClass string, payload interface{}) (*QueueJob, error) {
+	if reflect.ValueOf(payload).Kind() != reflect.Struct {
+		return nil, errors.New("payload should be a struct")
+	}
+
 	return &QueueJob{
 		JobClass: jobClass,
 		Payload:  payload,
 		Queue:    "default",
 		Timeout:  nil,
-	}
+	}, nil
 }
 
 type QueueConnection interface {
