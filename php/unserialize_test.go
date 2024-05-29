@@ -12,6 +12,23 @@ func TestUnserializeError(t *testing.T) {
 	}
 }
 
+func TestUnserializeObject(t *testing.T) {
+	type User struct {
+		Name  string
+		Admin bool
+	}
+
+	var user User
+	err := Unserialize("O:4:\"User\":2:{s:4:\"Name\";s:7:\"Jerodev\";s:5:\"Admin\";b:1;}", &user)
+	if err != nil {
+		t.Errorf("ERR %s", err.Error())
+	}
+
+	if user.Name != "Jerodev" || !user.Admin {
+		t.Errorf("Unexpected values %v", user)
+	}
+}
+
 func TestUnserializeScalar(t *testing.T) {
 	var pointer *int
 	err := Unserialize("N;", &pointer)
@@ -47,6 +64,14 @@ func TestUnserializeScalar(t *testing.T) {
 	}
 	if dInt != 35 {
 		t.Errorf("expected 35, got %v", dInt)
+	}
+
+	err = Unserialize("N;", &dInt)
+	if err != nil {
+		t.Errorf("ERR %s", err.Error())
+	}
+	if dInt != 0 {
+		t.Errorf("expected 0, got %v", dInt)
 	}
 
 	var dString string

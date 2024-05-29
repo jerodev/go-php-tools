@@ -29,6 +29,8 @@ func unserializeWalk(input string, position *int, dest interface{}) error {
 	}
 
 	switch input[*position : *position+2] {
+	case "a:":
+		// TODO: unserialize arrays
 	case "b:":
 		if input[*position+3] == '1' {
 			rDest.Elem().SetBool(true)
@@ -48,16 +50,54 @@ func unserializeWalk(input string, position *int, dest interface{}) error {
 			return err
 		}
 		rDest.Elem().SetInt(int64(value))
+	case "O":
+		return unserializeStruct(input, position, dest)
 	case "s:":
-		*position += 3
-		walkUntil(input, position, ':')
-		value := walkUntil(input, position, ';')
-		rDest.Elem().SetString(value[1 : len(value)-1])
+		return unserializeString(input, position, rDest)
 	default:
 		return errors.New("unknown pattern " + input)
 	}
 
 	// Continue past the last ';'
+	*position++
+
+	return nil
+}
+
+func unserializeString(input string, position *int, dest reflect.Value) error {
+	*position += 3
+	walkUntil(input, position, ':')
+	value := walkUntil(input, position, ';')
+	dest.Elem().SetString(value[1 : len(value)-1])
+}
+
+func unserializeStruct(input string, position *int, dest interface{}) error {
+	r := reflect.ValueOf(dest)
+	if r.Elem().Kind() != reflect.Struct {
+		return errors.New("Expected struct destination, got " + r.Elem().Kind().String())
+	}
+
+	walkUntil(input, position, '{')
+	*position++
+
+	fields := map[string]reflect.Value{}
+	for i := range r.Elem().NumField() {
+		field := r.Elem().Field(i)
+		fields[field.Elem().Type().Name()] = field.Elem()
+	}
+
+	fieldName := ""
+	rFieldName := reflect.ValueOf(fieldName)
+	for {
+		if input[*position] == '}' {
+			break
+		}
+
+		unserializeString(input, position, rFieldName)
+
+		// TODO: map struct field
+	}
+
 	*position++
 
 	return nil
