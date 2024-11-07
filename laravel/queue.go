@@ -16,10 +16,10 @@ import (
 
 type QueueJob struct {
 	JobClass string
-	MaxTries *int
+	MaxTries int
 	Payload  interface{}
 	Queue    string
-	Timeout  *int
+	Timeout  int
 }
 
 // OnQueue sets the queue name where the job will be dispatched
@@ -31,14 +31,14 @@ func (j *QueueJob) OnQueue(q string) *QueueJob {
 
 // WithMaxTries sets the maximum amount of thimes the job will be retried
 func (j *QueueJob) WithMaxTries(t int) *QueueJob {
-	*j.MaxTries = t
+	j.MaxTries = t
 
 	return j
 }
 
 // WithTimeout sets the time the job is allowed to run for
 func (j *QueueJob) WithTimeout(t int) *QueueJob {
-	*j.Timeout = t
+	j.Timeout = t
 
 	return j
 }
@@ -52,15 +52,15 @@ func (j QueueJob) createJobPayload() jobPayload {
 
 	id := uuid.New().String()
 
-	return jobPayload{
+	payload := jobPayload{
 		Uuid:          id,
 		DisplayName:   j.JobClass,
 		Job:           "Illuminate\\Queue\\CallQueuedHandler@call",
-		MaxTries:      j.MaxTries,
+		MaxTries:      nil,
 		MaxExceptions: nil,
 		FailOnTimeout: false,
 		Backoff:       false,
-		Timeout:       j.Timeout,
+		Timeout:       nil,
 		RetryUntil:    nil,
 		Data: jobPayloadData{
 			CommandName: j.JobClass,
@@ -71,18 +71,28 @@ func (j QueueJob) createJobPayload() jobPayload {
 		Type:     "job",
 		PushedAt: strconv.Itoa(int(time.Now().UnixMicro())),
 	}
-}
 
-func NewQueueJob(jobClass string, payload interface{}) (*QueueJob, error) {
-	if reflect.ValueOf(payload).Kind() != reflect.Struct {
-		return nil, errors.New("payload should be a struct")
+	if j.MaxTries > 0 {
+		payload.MaxTries = &j.MaxTries
 	}
 
-	return &QueueJob{
+	if j.Timeout > 0 {
+		payload.Timeout = &j.Timeout
+	}
+
+	return payload
+}
+
+func NewQueueJob(jobClass string, payload interface{}) (QueueJob, error) {
+	if reflect.ValueOf(payload).Kind() != reflect.Struct {
+		return QueueJob{}, errors.New("payload should be a struct")
+	}
+
+	return QueueJob{
 		JobClass: jobClass,
 		Payload:  payload,
 		Queue:    "default",
-		Timeout:  nil,
+		Timeout:  0,
 	}, nil
 }
 
