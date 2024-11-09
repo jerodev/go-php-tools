@@ -40,11 +40,11 @@ func TestUnserializeScalar(t *testing.T) {
 	}
 
 	var dBool bool
-	err = Unserialize("b:8.13;", &dBool)
+	err = Unserialize("b:1;", &dBool)
 	if err != nil {
 		t.Errorf("ERR %s", err.Error())
 	}
-	if dBool {
+	if !dBool {
 		t.Errorf("expected true, got %v", dBool)
 	}
 

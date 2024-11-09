@@ -40,7 +40,7 @@ func unserializeWalk(input string, position *int, dest interface{}) error {
 	case "a:":
 		// TODO: unserialize arrays
 	case "b:":
-		if input[*position+3] == '1' {
+		if input[*position+2] == '1' {
 			rDest.SetBool(true)
 		} else {
 			rDest.SetBool(false)
@@ -99,8 +99,12 @@ func unserializeString(input string, position *int, dest reflect.Value) error {
 	*position += 3
 	walkUntil(input, position, ':')
 	value := walkUntil(input, position, ';')
-	dest.SetString(value[1 : len(value)-1])
 
+	if !dest.CanAddr() {
+		dest = dest.Elem()
+	}
+
+	dest.SetString(value[1 : len(value)-1])
 	*position++
 
 	return nil
