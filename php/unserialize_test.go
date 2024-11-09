@@ -10,6 +10,41 @@ func TestUnserializeError(t *testing.T) {
 	if !errors.Is(err, ErrMustBeWriteable) {
 		t.Errorf("Expected ErrMustBeWriteable, got %s", err.Error())
 	}
+
+	var destInt int
+	err = Unserialize("a:1:{i:0;i:1}", &destInt)
+	if err == nil {
+		t.Error("Expected array error, got none")
+	}
+}
+
+func TestUnserializeListArray(t *testing.T) {
+	var dest []int
+	err := Unserialize("a:3:{i:0;i:1;i:1;i:2;i:2;i:3;}", &dest)
+	if err != nil {
+		t.Error("Unexpected error:", err.Error())
+	}
+	if len(dest) != 3 || dest[0] != 1 || dest[1] != 2 || dest[2] != 3 {
+		t.Errorf("Expected output [1, 2, 3], got %v", dest)
+	}
+
+	var aDest [3]int
+	err = Unserialize("a:3:{i:0;i:1;i:1;i:2;i:2;i:3;}", &aDest)
+	if err != nil {
+		t.Error("Unexpected error:", err.Error())
+	}
+	if aDest[0] != 1 || aDest[1] != 2 || aDest[2] != 3 {
+		t.Errorf("Expected output [1, 2, 3], got %v", aDest)
+	}
+
+	var destStr []string
+	err = Unserialize("a:3:{i:0;s:3:\"foo\";i:1;s:3:\"bar\";i:2;s:3:\"baz\";}", &destStr)
+	if err != nil {
+		t.Error("Unexpected error:", err.Error())
+	}
+	if len(destStr) != 3 || destStr[0] != "foo" || destStr[1] != "bar" || destStr[2] != "bar" {
+		t.Errorf("Expected output ['foo', 'bar', 'baz'], got %v", destStr)
+	}
 }
 
 func TestUnserializeObject(t *testing.T) {

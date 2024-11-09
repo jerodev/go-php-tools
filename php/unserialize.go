@@ -38,7 +38,7 @@ func unserializeWalk(input string, position *int, dest interface{}) error {
 
 	switch input[*position : *position+2] {
 	case "a:":
-		// TODO: unserialize arrays
+		return unserializeArray(input, position, dest)
 	case "b:":
 		if input[*position+2] == '1' {
 			rDest.SetBool(true)
@@ -70,6 +70,20 @@ func unserializeWalk(input string, position *int, dest interface{}) error {
 	*position++
 
 	return nil
+}
+
+func unserializeArray(input string, position *int, dest interface{}) error {
+	r := reflect.ValueOf(dest).Elem()
+	if r.Kind() == reflect.Map {
+		// TODO: implement array => map unserialization
+
+		return errors.New("array to map unserialization not yet implemented")
+	}
+	if r.Kind() != reflect.Array && r.Kind() != reflect.Slice {
+		return errors.New("expected array or slice destination, got " + r.Kind().String())
+	}
+
+	return errors.New("array not yet implemented")
 }
 
 // unserializeNext finds the next serialized value starting from position and sets the value in destination
