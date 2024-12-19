@@ -110,21 +110,26 @@ func (c *RedisQueueConnection) WithContext(ctx context.Context) {
 	c.context = ctx
 }
 
-func (c *RedisQueueConnection) Dispatch(job QueueJob) {
+func (c *RedisQueueConnection) Dispatch(job QueueJob) error {
 	queueName := c.prefix + job.Queue
 	payload, _ := json.Marshal(job.createJobPayload())
 
-	c.client.RPush(
+	cmd := c.client.RPush(
 		c.context,
 		queueName,
 		string(payload),
 	)
+	if cmd.Err() != nil {
+		return cmd.Err()
+	}
 
-	c.client.RPush(
+	cmd = c.client.RPush(
 		c.context,
 		queueName+":notify",
 		1,
 	)
+
+	return cmd.Err()
 }
 
 func NewRedisQueueClient(laravelAppName string, opts *redis.Options) RedisQueueConnection {
