@@ -1,12 +1,7 @@
 package php
 
 import (
-	"errors"
 	"fmt"
-)
-
-var (
-	ErrUnexpectedEndOfString = errors.New("unexpected end of string")
 )
 
 type ErrUnexpectedToken struct {
