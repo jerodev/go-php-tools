@@ -139,8 +139,7 @@ func serializeStruct(data interface{}) (string, error) {
 	serialized.WriteString(":{")
 
 	var field reflect.StructField
-	var keyString string
-	var valueString string
+	var keyString, valueString string
 	var err error
 	var ok bool
 	for i := range a.NumField() {
@@ -168,7 +167,7 @@ func structFieldCount(data reflect.Value) int {
 		return 1
 	}
 
-	count := 0
+	var count int
 	for i := 0; i < data.NumField(); i++ {
 		count += structFieldCount(data.Field(i))
 	}
