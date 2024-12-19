@@ -2,6 +2,7 @@ package php
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"strconv"
 )
@@ -83,7 +84,32 @@ func unserializeArray(input string, position *int, dest interface{}) error {
 		return errors.New("expected array or slice destination, got " + r.Kind().String())
 	}
 
-	return errors.New("array not yet implemented")
+	*position += 2
+	sub := walkUntil(input, position, ':')
+	length, err := strconv.Atoi(sub)
+	if err != nil {
+		return fmt.Errorf("invalid array length: %s (%w)", sub, err)
+	}
+
+	*position += 2
+	var ii int
+	for i := range length {
+		err = unserializeWalk(input, position, &ii)
+		if i != ii {
+			return fmt.Errorf("array index at %v does not match, got %v", i, ii)
+		}
+
+		if r.Kind() == reflect.Array {
+			err = unserializeWalk(input, position, r.Field(i))
+			if err != nil {
+				return fmt.Errorf("cannot set array at index %v: %w", i, err)
+			}
+		} else {
+
+		}
+	}
+
+	return nil
 }
 
 // unserializeNext finds the next serialized value starting from position and sets the value in destination
