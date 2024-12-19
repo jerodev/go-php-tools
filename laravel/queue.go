@@ -43,7 +43,7 @@ func (j *QueueJob) WithTimeout(t int) *QueueJob {
 	return j
 }
 
-func (j QueueJob) createJobPayload() jobPayload {
+func (j *QueueJob) createJobPayload() jobPayload {
 	refl := reflect.ValueOf(j.Payload)
 	data, _ := php.Serialize(j.Payload)
 
@@ -101,24 +101,27 @@ type QueueConnection interface {
 }
 
 type RedisQueueConnection struct {
-	client redis.Client
-	prefix string
+	client  redis.Client
+	context context.Context
+	prefix  string
 }
 
-func (c RedisQueueConnection) Dispatch(job QueueJob) {
+func (c *RedisQueueConnection) WithContext(ctx context.Context) {
+	c.context = ctx
+}
+
+func (c *RedisQueueConnection) Dispatch(job QueueJob) {
 	queueName := c.prefix + job.Queue
 	payload, _ := json.Marshal(job.createJobPayload())
 
-	ctx := context.Background()
-
 	c.client.RPush(
-		ctx,
+		c.context,
 		queueName,
 		string(payload),
 	)
 
 	c.client.RPush(
-		ctx,
+		c.context,
 		queueName+":notify",
 		1,
 	)
@@ -126,8 +129,9 @@ func (c RedisQueueConnection) Dispatch(job QueueJob) {
 
 func NewRedisQueueClient(laravelAppName string, opts *redis.Options) RedisQueueConnection {
 	return RedisQueueConnection{
-		client: *redis.NewClient(opts),
-		prefix: strings.ToLower(strings.ReplaceAll(laravelAppName, " ", "_")) + "_database_queues:",
+		client:  *redis.NewClient(opts),
+		context: context.Background(),
+		prefix:  strings.ToLower(strings.ReplaceAll(laravelAppName, " ", "_")) + "_database_queues:",
 	}
 }
 
