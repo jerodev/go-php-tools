@@ -5,12 +5,12 @@ import (
 	"testing"
 )
 
-type UpdateDashboardPayload struct {
+type job struct {
 	Parts []string `php:"parts"`
 }
 
 func TestSerializeJob(t *testing.T) {
-	job, _ := NewQueueJob(`App\Events\UpdateDashboards`, UpdateDashboardPayload{
+	job, _ := NewQueueJob(`App\Events\UpdateDashboards`, job{
 		Parts: []string{"foo", "bar"},
 	})
 
