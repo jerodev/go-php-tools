@@ -27,7 +27,7 @@ func TestNewBroadcastEvent(t *testing.T) {
 	})
 
 	commandPayload := job.createJobPayload().Data.Command
-	expected := fmt.Sprintf(`O:%v:"%s":1:{s:5:"Event";O:%v:"%s"`, len(broadcastJobClass), broadcastJobClass, len(`App\Events\UpdateDashboards`), `App\Events\UpdateDashboards`)
+	expected := fmt.Sprintf(`O:%v:"%s":1:{s:5:"event";O:%v:"%s"`, len(broadcastJobClass), broadcastJobClass, len(`App\Events\UpdateDashboards`), `App\Events\UpdateDashboards`)
 	if !strings.HasPrefix(commandPayload, expected) {
 		t.Errorf("Invalid serialized data `%s`", commandPayload)
 	}
