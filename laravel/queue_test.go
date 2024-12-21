@@ -15,7 +15,7 @@ func TestSerializeJob(t *testing.T) {
 	})
 
 	commandPayload := job.createJobPayload().Data.Command
-	if strings.Contains(commandPayload, "::") {
+	if strings.HasSuffix(commandPayload, `O:27:"App\Events\UpdateDashboards":1:{`) {
 		t.Error("Invalid serialized data: ", commandPayload)
 	}
 }

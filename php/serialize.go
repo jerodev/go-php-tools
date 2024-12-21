@@ -8,10 +8,16 @@ import (
 	"strings"
 )
 
+var structNames map[string]string
+
 // Serialize turns a Go value into a serialized PHP data string
 func Serialize(data interface{}) (string, error) {
 	if data == nil {
 		return "N;", nil
+	}
+
+	if structNames == nil {
+		structNames = map[string]string{}
 	}
 
 	v := reflect.ValueOf(data)
@@ -58,6 +64,12 @@ func Serialize(data interface{}) (string, error) {
 	}
 
 	return "", ErrUnsupportedDataType{DataType: v.Kind().String()}
+}
+
+// WithStructNames allows setting the desired object name for a Go struct
+// The keys in the map represent the Go struct names and the values are the PHP class names
+func WithStructNames(names map[string]string) {
+	structNames = names
 }
 
 func serializeArray(data interface{}) (string, error) {
@@ -129,11 +141,16 @@ func serializeString(value string) string {
 func serializeStruct(data interface{}) (string, error) {
 	a := reflect.ValueOf(data)
 
+	objectName := a.Type().Name()
+	if name, ok := structNames[objectName]; ok {
+		objectName = name
+	}
+
 	var serialized strings.Builder
 	serialized.WriteString("O:")
-	serialized.WriteString(strconv.Itoa(len(a.Type().Name())))
+	serialized.WriteString(strconv.Itoa(len(objectName)))
 	serialized.WriteString(":\"")
-	serialized.WriteString(a.Type().Name())
+	serialized.WriteString(objectName)
 	serialized.WriteString("\":")
 	serialized.WriteString(strconv.Itoa(structFieldCount(a)))
 	serialized.WriteString(":{")
