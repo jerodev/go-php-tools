@@ -13,7 +13,7 @@ type Job struct {
 }
 
 func main() {
-	job, _ := laravel.NewQueueJob("App\\Jobs\\LaravelTestJob", Job{
+	job, _ := laravel.NewQueueJob(`App\Jobs\LaravelTestJob`, Job{
 		Contents: strings.Split(os.Getenv("TEST_CONTENT"), ","),
 	})
 
