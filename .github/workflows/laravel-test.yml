@@ -15,6 +15,7 @@ jobs:
       APP_NAME: LaraQueue
       APP_KEY: abc123
       QUEUE_CONNECTION: redis
+      QUEUE_FAILED_DRIVER: "null"
       TEST_CONTENT: Lorem,Ipsum
 
     services:
@@ -43,7 +44,6 @@ jobs:
         run: |
             mkdir laratest/app/Jobs
             cp testscripts/laravel/LaravelTestJob.php laratest/app/Jobs/LaravelTestJob.php
-            touch laratest/database/database.sqlite
 
       - uses: actions/setup-go@v5
         with:
