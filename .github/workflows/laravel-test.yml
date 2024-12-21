@@ -15,7 +15,7 @@ jobs:
       APP_NAME: LaraQueue
       APP_KEY: abc123
       QUEUE_CONNECTION: redis
-      TEST_CONTENT: Lorem Ipsum
+      TEST_CONTENT: Lorem,Ipsum
 
     services:
       redis:

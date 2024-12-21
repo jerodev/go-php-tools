@@ -14,6 +14,6 @@ class LaravelTestJob implements ShouldQueue
 
     public function handle(): void
     {
-        \file_put_contents(__DIR__ . '/foo_bar', $this->contents);
+        \file_put_contents(__DIR__ . '/foo_bar', \implode(',' $this->contents));
     }
 }
