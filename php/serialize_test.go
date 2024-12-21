@@ -11,6 +11,10 @@ type testStruct struct {
 	Traits   []string
 }
 
+type testSimpleStruct struct {
+	Name string
+}
+
 func testSerialize(t *testing.T, expectation string, data interface{}) {
 	valueString, _ := Serialize(data)
 
@@ -43,6 +47,14 @@ func TestSerializeObject(t *testing.T) {
 	}
 
 	testSerialize(t, "O:10:\"testStruct\":4:{s:4:\"Name\";s:3:\"Foo\";s:9:\"last_name\";s:3:\"Bar\";s:3:\"Age\";i:38;s:6:\"Traits\";a:2:{i:0;s:4:\"Fast\";i:1;s:4:\"Slow\";}}", obj)
+}
+
+func TestWithStructNames(t *testing.T) {
+	WithStructNames(map[string]string{
+		"testSimpleStruct": `App\Foo`,
+	})
+
+	testSerialize(t, "O:7:\"App\\Foo\":1:{s:4:\"Name\";s:7:\"Jerodev\";}", testSimpleStruct{"Jerodev"})
 }
 
 func TestSerializeScalar(t *testing.T) {
