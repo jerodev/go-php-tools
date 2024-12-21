@@ -10,10 +10,10 @@ class LaravelTestJob implements ShouldQueue
 {
     use InteractsWithQueue, Queueable;
 
-    public string $contents;
+    public array $contents;
 
     public function handle(): void
     {
-        \file_put_contents(__DIR__ . '/foo_bar', $this->contents);
+        \file_put_contents(__DIR__ . '/foo_bar', \implode(',', $this->contents));
     }
 }
