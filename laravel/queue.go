@@ -47,8 +47,10 @@ func (j *QueueJob) createJobPayload() jobPayload {
 	refl := reflect.ValueOf(j.Payload)
 	data, _ := php.Serialize(j.Payload)
 
+	// Replace the name of the struct with the name of the PHP class
+	// O:{class name length}:"{class name}":
 	jobClassString := "O:" + strconv.Itoa(len(j.JobClass)) + ":\"" + j.JobClass + "\":"
-	data = jobClassString + data[len(refl.Type().Name())+len("O:3:\"\":"):]
+	data = jobClassString + data[len(refl.Type().Name())/10+len(refl.Type().Name())+len("O::\"\":"):]
 
 	id := uuid.New().String()
 
