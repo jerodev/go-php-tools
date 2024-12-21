@@ -14,12 +14,18 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+const broadcastJobClass = `Illuminate\Broadcasting\BroadcastEvent`
+
 type QueueJob struct {
 	JobClass string
 	MaxTries int
 	Payload  interface{}
 	Queue    string
 	Timeout  int
+}
+
+type BroadCastPayload struct {
+	Event interface{}
 }
 
 // OnQueue sets the queue name where the job will be dispatched
@@ -80,6 +86,20 @@ func (j *QueueJob) createJobPayload() jobPayload {
 	}
 
 	return payload
+}
+
+func NewBroadcastEvent(jobClass string, payload interface{}) (QueueJob, error) {
+	if reflect.ValueOf(payload).Kind() != reflect.Struct {
+		return QueueJob{}, errors.New("payload should be a struct")
+	}
+
+	php.WithStructNames(map[string]string{
+		reflect.ValueOf(payload).Type().Name(): jobClass,
+	})
+
+	return NewQueueJob(broadcastJobClass, BroadCastPayload{
+		Event: payload,
+	})
 }
 
 func NewQueueJob(jobClass string, payload interface{}) (QueueJob, error) {

@@ -69,7 +69,18 @@ func Serialize(data interface{}) (string, error) {
 // WithStructNames allows setting the desired object name for a Go struct
 // The keys in the map represent the Go struct names and the values are the PHP class names
 func WithStructNames(names map[string]string) {
-	structNames = names
+	if structNames == nil {
+		structNames = names
+		return
+	}
+
+	for k, v := range names {
+		if v == "" {
+			delete(structNames, k)
+		} else {
+			structNames[k] = v
+		}
+	}
 }
 
 func serializeArray(data interface{}) (string, error) {
