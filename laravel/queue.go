@@ -25,7 +25,7 @@ type QueueJob struct {
 }
 
 type BroadCastPayload struct {
-	Event interface{}
+	Event interface{} `php:"event"`
 }
 
 // OnQueue sets the queue name where the job will be dispatched
