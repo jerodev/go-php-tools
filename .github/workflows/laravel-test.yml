@@ -43,6 +43,7 @@ jobs:
         run: |
             mkdir laratest/app/Jobs
             cp testscripts/laravel/LaravelTestJob.php laratest/app/Jobs/LaravelTestJob.php
+            touch laratest/database/database.sqlite
 
       - uses: actions/setup-go@v5
         with:
