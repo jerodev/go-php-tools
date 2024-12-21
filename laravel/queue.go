@@ -75,6 +75,7 @@ func (j *QueueJob) createJobPayload() jobPayload {
 		Attepmts: 0,
 		Type:     "job",
 		PushedAt: strconv.Itoa(int(time.Now().UnixMicro())),
+		Tags:     []string{},
 	}
 
 	if j.MaxTries > 0 {
