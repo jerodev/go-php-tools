@@ -3,6 +3,8 @@ A bundle of tools for interaction between Go and PHP written in Go
 
 - [PHP Tools](#php-tools)
 - [Laravel Tools](#laravel-tools)
+  - [Queue Redis job](#queue-redis-job)
+  - [Queue Broadcasting event](#queue-broadcasting-event)
 
 ## PHP Tools
 ### Serialize data
@@ -61,4 +63,33 @@ func main() {
 	conn.Dispatch(job)
 }
 
+```
+
+### Queue Broadcasting event
+In the same way that this package can queue jobs, it can also queue broadcasting events to be picked up by your Laravel
+application or Laravel Reverb.
+
+```go
+package main
+
+import (
+	"github.com/jerodev/go-php-tools/laravel"
+	"github.com/redis/go-redis/v9"
+)
+
+type OrderUpdated struct {
+	OrderId int `php:"order_id"`
+}
+
+func main() {
+	job, _ := laravel.NewBroadcastEvent("App\\Events\\OrderUpdated", OrderUpdated{
+		OrderId: 42,
+	})
+
+	conn := laravel.NewRedisQueueClient("LaraQueue", &redis.Options{
+		Addr: "127.0.0.1:6379",
+	})
+
+	conn.Dispatch(job)
+}
 ```
