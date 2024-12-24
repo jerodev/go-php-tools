@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -138,7 +139,7 @@ func (c *RedisQueueConnection) Dispatch(job QueueJob) error {
 
 	jobPayload, err := job.createJobPayload()
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to serialize payload: %w", err)
 	}
 
 	payload, _ := json.Marshal(jobPayload)
@@ -149,7 +150,7 @@ func (c *RedisQueueConnection) Dispatch(job QueueJob) error {
 		string(payload),
 	)
 	if cmd.Err() != nil {
-		return cmd.Err()
+		return fmt.Errorf("redis error: %w", cmd.Err())
 	}
 
 	cmd = c.client.RPush(
