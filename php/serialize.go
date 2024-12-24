@@ -1,6 +1,7 @@
 package php
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"slices"
@@ -109,7 +110,8 @@ func serializeMap(data reflect.Value) (string, error) {
 	serialized.WriteString("a:" + strconv.Itoa(data.Len()) + ":{")
 
 	// The order of keys in a map is unpredictable.
-	// We sort the keys alphabetically to make testing easier
+	// We sort the keys alphabetically to make the output consistent
+	// Take into account key casting: https://www.php.net/manual/en/language.types.array.php#language.types.array.key-casts
 	keys := data.MapKeys()
 	slices.SortFunc(keys, func(a, b reflect.Value) int {
 		if a.CanInt() {
@@ -119,14 +121,14 @@ func serializeMap(data reflect.Value) (string, error) {
 			return strings.Compare(a.String(), b.String())
 		}
 		if a.CanFloat() {
-			return int(a.Float() - b.Float())
+			return int(a.Float()) - int(b.Float())
 		}
 		if a.Kind() == reflect.Bool {
 			if a.Bool() && !b.Bool() {
-				return -1
+				return 1
 			}
 			if !a.Bool() && b.Bool() {
-				return 1
+				return -1
 			}
 			return 0
 		}
@@ -136,9 +138,29 @@ func serializeMap(data reflect.Value) (string, error) {
 
 	var keyString string
 	var valueString string
+	var keyValue interface{}
 	var err error
 	for _, k := range keys {
-		keyString, err = Serialize(k.Interface())
+		if k.Kind() == reflect.Struct {
+			return "", errors.New("Arrays and objects can not be used as keys. Received " + k.Kind().String())
+		}
+
+		// Cast array keys according to PHP specs
+		// https://www.php.net/manual/en/language.types.array.php#language.types.array.key-casts
+		keyValue = k.Interface()
+		if k.CanFloat() {
+			keyValue = int(k.Float())
+		} else if keyValue == nil {
+			keyValue = ""
+		} else if k.Kind() == reflect.Bool {
+			if k.Bool() {
+				keyValue = 1
+			} else {
+				keyValue = 0
+			}
+		}
+
+		keyString, err = Serialize(keyValue)
 		if err != nil {
 			return "", err
 		}

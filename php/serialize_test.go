@@ -15,15 +15,18 @@ type testSimpleStruct struct {
 	Name string
 }
 
-func testSerialize(t *testing.T, expectation string, data interface{}) {
-	valueString, _ := Serialize(data)
+func testSerialize(t *testing.T, expectation string, data interface{}) error {
+	valueString, err := Serialize(data)
 
 	if valueString != expectation {
 		t.Errorf("expected %s, got %s", expectation, valueString)
 	}
+
+	return err
 }
 
 func TestSerializeArray(t *testing.T) {
+	testSerialize(t, "a:0:{}", []string{})
 	testSerialize(t, "a:3:{i:0;i:4;i:1;i:5;i:2;i:6;}", [3]int{4, 5, 6})
 	testSerialize(t, "a:2:{i:0;i:1;i:1;i:2;}", []int{1, 2})
 	testSerialize(t, "a:3:{i:0;a:2:{i:0;i:1;i:1;i:2;}i:1;a:2:{i:0;i:3;i:1;i:4;}i:2;a:1:{i:0;i:5;}}", [][]int{{1, 2}, {3, 4}, {5}})
@@ -37,8 +40,18 @@ func TestSerializeMap(t *testing.T) {
 	testSerialize(t, "a:3:{s:5:\"Maybe\";s:9:\"Misschien\";s:2:\"No\";s:3:\"Nee\";s:3:\"Yes\";s:2:\"Ja\";}", map[string]string{"Yes": "Ja", "No": "Nee", "Maybe": "Misschien"})
 
 	// Special key and value types
-	testSerialize(t, "a:2:{d:3.5;s:3:\"Bar\";d:8.8;s:3:\"Foo\";}", map[float64]string{8.8: "Foo", 3.5: "Bar"})
-	testSerialize(t, "a:2:{b:1;O:16:\"testSimpleStruct\":1:{s:4:\"Name\";s:3:\"Foo\";}b:0;O:16:\"testSimpleStruct\":1:{s:4:\"Name\";s:3:\"Bar\";}}", map[bool]testSimpleStruct{true: {"Foo"}, false: {"Bar"}})
+	testSerialize(t, "a:2:{i:3;s:3:\"Bar\";i:8;s:3:\"Foo\";}", map[float64]string{8.8: "Foo", 3.5: "Bar"})
+	testSerialize(t, "a:2:{i:0;O:16:\"testSimpleStruct\":1:{s:4:\"Name\";s:3:\"Bar\";}i:1;O:16:\"testSimpleStruct\":1:{s:4:\"Name\";s:3:\"Foo\";}}", map[bool]testSimpleStruct{true: {"Foo"}, false: {"Bar"}})
+}
+
+func TestInvalidArrayKeys(t *testing.T) {
+	err := testSerialize(t, "", map[testSimpleStruct]string{
+		testSimpleStruct{"Foo"}: "bar",
+	})
+
+	if err == nil {
+		t.Error("struct array keys should not be allowed but are")
+	}
 }
 
 func TestSerializeObject(t *testing.T) {
