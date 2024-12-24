@@ -90,7 +90,7 @@ func serializeArray(data reflect.Value) (string, error) {
 
 	var valueString string
 	var err error
-	for i := 0; i < data.Len(); i++ {
+	for i := range data.Len() {
 		valueString, err = Serialize(reflect.Indirect(data.Index(i)).Interface())
 		if err != nil {
 			return "", err
@@ -227,7 +227,7 @@ func structFieldCount(data reflect.Value) int {
 	}
 
 	var count int
-	for i := 0; i < data.NumField(); i++ {
+	for i := range data.NumField() {
 		count += structFieldCount(data.Field(i))
 	}
 
