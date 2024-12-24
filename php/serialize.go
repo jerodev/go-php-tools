@@ -24,7 +24,7 @@ func Serialize(data interface{}) (string, error) {
 
 	switch v.Kind() {
 	case reflect.Array, reflect.Slice:
-		return serializeArray(data)
+		return serializeArray(v)
 	case reflect.Bool:
 		if data.(bool) {
 			return "b:1;", nil
@@ -44,11 +44,11 @@ func Serialize(data interface{}) (string, error) {
 	case reflect.Int64:
 		return "i:" + strconv.Itoa(int(data.(int64))) + ";", nil
 	case reflect.Map:
-		return serializeMap(data)
+		return serializeMap(v)
 	case reflect.String:
 		return serializeString(data.(string)), nil
 	case reflect.Struct:
-		return serializeStruct(data)
+		return serializeStruct(v)
 	case reflect.Uint:
 		return "i:" + strconv.Itoa(int(data.(uint))) + ";", nil
 	case reflect.Uint8:
@@ -83,16 +83,14 @@ func WithStructNames(names map[string]string) {
 	}
 }
 
-func serializeArray(data interface{}) (string, error) {
-	a := reflect.ValueOf(data)
-
+func serializeArray(data reflect.Value) (string, error) {
 	var serialized strings.Builder
-	serialized.WriteString("a:" + strconv.Itoa(a.Len()) + ":{")
+	serialized.WriteString("a:" + strconv.Itoa(data.Len()) + ":{")
 
 	var valueString string
 	var err error
-	for i := 0; i < a.Len(); i++ {
-		valueString, err = Serialize(reflect.Indirect(a.Index(i)).Interface())
+	for i := 0; i < data.Len(); i++ {
+		valueString, err = Serialize(reflect.Indirect(data.Index(i)).Interface())
 		if err != nil {
 			return "", err
 		}
@@ -106,21 +104,19 @@ func serializeArray(data interface{}) (string, error) {
 	return serialized.String() + "}", nil
 }
 
-func serializeMap(data interface{}) (string, error) {
-	a := reflect.ValueOf(data)
-
+func serializeMap(data reflect.Value) (string, error) {
 	var serialized strings.Builder
-	serialized.WriteString("a:" + strconv.Itoa(a.Len()) + ":{")
+	serialized.WriteString("a:" + strconv.Itoa(data.Len()) + ":{")
 
 	// The order of keys in a map is unpredictable.
 	// We sort the keys alphabetically to make testing easier
-	keys := a.MapKeys()
+	keys := data.MapKeys()
 	slices.SortFunc(keys, func(a, b reflect.Value) int {
 		if a.Kind() == reflect.String {
 			return strings.Compare(a.String(), b.String())
-		} else {
-			return int(a.Int() - b.Int())
 		}
+
+		return int(a.Int() - b.Int())
 	})
 
 	var keyString string
@@ -132,7 +128,7 @@ func serializeMap(data interface{}) (string, error) {
 			return "", err
 		}
 
-		valueString, err = Serialize(a.MapIndex(k).Interface())
+		valueString, err = Serialize(data.MapIndex(k).Interface())
 		if err != nil {
 			return "", err
 		}
@@ -149,10 +145,8 @@ func serializeString(value string) string {
 	return "s:" + strconv.Itoa(len(value)) + ":\"" + value + "\";"
 }
 
-func serializeStruct(data interface{}) (string, error) {
-	a := reflect.ValueOf(data)
-
-	objectName := a.Type().Name()
+func serializeStruct(data reflect.Value) (string, error) {
+	objectName := data.Type().Name()
 	if name, ok := structNames[objectName]; ok {
 		objectName = name
 	}
@@ -163,20 +157,20 @@ func serializeStruct(data interface{}) (string, error) {
 	serialized.WriteString(":\"")
 	serialized.WriteString(objectName)
 	serialized.WriteString("\":")
-	serialized.WriteString(strconv.Itoa(structFieldCount(a)))
+	serialized.WriteString(strconv.Itoa(structFieldCount(data)))
 	serialized.WriteString(":{")
 
 	var field reflect.StructField
 	var keyString, valueString string
 	var err error
 	var ok bool
-	for i := range a.NumField() {
-		valueString, err = Serialize(a.Field(i).Interface())
+	for i := range data.NumField() {
+		valueString, err = Serialize(data.Field(i).Interface())
 		if err != nil {
 			return "", err
 		}
 
-		field = a.Type().Field(i)
+		field = data.Type().Field(i)
 		if keyString, ok = field.Tag.Lookup("php"); !ok {
 			keyString = field.Name
 		}
