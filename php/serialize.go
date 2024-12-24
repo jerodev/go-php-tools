@@ -112,11 +112,26 @@ func serializeMap(data reflect.Value) (string, error) {
 	// We sort the keys alphabetically to make testing easier
 	keys := data.MapKeys()
 	slices.SortFunc(keys, func(a, b reflect.Value) int {
+		if a.CanInt() {
+			return int(a.Int() - b.Int())
+		}
 		if a.Kind() == reflect.String {
 			return strings.Compare(a.String(), b.String())
 		}
+		if a.CanFloat() {
+			return int(a.Float() - b.Float())
+		}
+		if a.Kind() == reflect.Bool {
+			if a.Bool() && !b.Bool() {
+				return -1
+			}
+			if !a.Bool() && b.Bool() {
+				return 1
+			}
+			return 0
+		}
 
-		return int(a.Int() - b.Int())
+		return -1
 	})
 
 	var keyString string

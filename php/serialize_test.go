@@ -30,9 +30,15 @@ func TestSerializeArray(t *testing.T) {
 }
 
 func TestSerializeMap(t *testing.T) {
+	testSerialize(t, "a:0:{}", map[string]string{})
+
 	// Remember, map keys are sorted alphabetically because otherwise the order cannot be predicted
 	testSerialize(t, "a:2:{s:4:\"That\";i:18;s:4:\"This\";i:7;}", map[string]int{"This": 7, "That": 18})
 	testSerialize(t, "a:3:{s:5:\"Maybe\";s:9:\"Misschien\";s:2:\"No\";s:3:\"Nee\";s:3:\"Yes\";s:2:\"Ja\";}", map[string]string{"Yes": "Ja", "No": "Nee", "Maybe": "Misschien"})
+
+	// Special key and value types
+	testSerialize(t, "a:2:{d:3.5;s:3:\"Bar\";d:8.8;s:3:\"Foo\";}", map[float64]string{8.8: "Foo", 3.5: "Bar"})
+	testSerialize(t, "a:2:{b:1;O:16:\"testSimpleStruct\":1:{s:4:\"Name\";s:3:\"Foo\";}b:0;O:16:\"testSimpleStruct\":1:{s:4:\"Name\";s:3:\"Bar\";}}", map[bool]testSimpleStruct{true: {"Foo"}, false: {"Bar"}})
 }
 
 func TestSerializeObject(t *testing.T) {
