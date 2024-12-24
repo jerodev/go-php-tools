@@ -1,6 +1,7 @@
 package php
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"slices"
@@ -20,7 +21,11 @@ func Serialize(data interface{}) (string, error) {
 		structNames = map[string]string{}
 	}
 
-	v := reflect.ValueOf(data)
+	var v reflect.Value
+	var ok bool
+	if v, ok = data.(reflect.Value); !ok {
+		v = reflect.ValueOf(data)
+	}
 
 	switch v.Kind() {
 	case reflect.Array, reflect.Slice:
@@ -32,33 +37,19 @@ func Serialize(data interface{}) (string, error) {
 		return "b:0;", nil
 	case reflect.Float32:
 	case reflect.Float64:
-		return "d:" + fmt.Sprintf("%v", data) + ";", nil
-	case reflect.Int:
-		return "i:" + strconv.Itoa(data.(int)) + ";", nil
-	case reflect.Int8:
-		return "i:" + strconv.Itoa(int(data.(int8))) + ";", nil
-	case reflect.Int16:
-		return "i:" + strconv.Itoa(int(data.(int16))) + ";", nil
-	case reflect.Int32:
-		return "i:" + strconv.Itoa(int(data.(int32))) + ";", nil
-	case reflect.Int64:
-		return "i:" + strconv.Itoa(int(data.(int64))) + ";", nil
+		return "d:" + fmt.Sprintf("%v", v.Float()) + ";", nil
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return "i:" + strconv.Itoa(int(v.Int())) + ";", nil
 	case reflect.Map:
 		return serializeMap(v)
 	case reflect.String:
-		return serializeString(data.(string)), nil
+		return serializeString(v.String()), nil
 	case reflect.Struct:
 		return serializeStruct(v)
-	case reflect.Uint:
-		return "i:" + strconv.Itoa(int(data.(uint))) + ";", nil
-	case reflect.Uint8:
-		return "i:" + strconv.Itoa(int(data.(uint8))) + ";", nil
-	case reflect.Uint16:
-		return "i:" + strconv.Itoa(int(data.(uint16))) + ";", nil
-	case reflect.Uint32:
-		return "i:" + strconv.Itoa(int(data.(uint32))) + ";", nil
-	case reflect.Uint64:
-		return "i:" + strconv.Itoa(int(data.(uint64))) + ";", nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return "i:" + strconv.Itoa(int(v.Uint())) + ";", nil
+	case reflect.Pointer:
+		return Serialize(v.Elem())
 	default:
 		return "", ErrUnsupportedDataType{DataType: v.Kind().String()}
 	}
@@ -89,8 +80,8 @@ func serializeArray(data reflect.Value) (string, error) {
 
 	var valueString string
 	var err error
-	for i := 0; i < data.Len(); i++ {
-		valueString, err = Serialize(reflect.Indirect(data.Index(i)).Interface())
+	for i := range data.Len() {
+		valueString, err = Serialize(reflect.Indirect(data.Index(i)))
 		if err != nil {
 			return "", err
 		}
@@ -109,31 +100,67 @@ func serializeMap(data reflect.Value) (string, error) {
 	serialized.WriteString("a:" + strconv.Itoa(data.Len()) + ":{")
 
 	// The order of keys in a map is unpredictable.
-	// We sort the keys alphabetically to make testing easier
+	// We sort the keys alphabetically to make the output consistent
+	// Take into account key casting: https://www.php.net/manual/en/language.types.array.php#language.types.array.key-casts
 	keys := data.MapKeys()
 	slices.SortFunc(keys, func(a, b reflect.Value) int {
+		if a.CanInt() {
+			return int(a.Int() - b.Int())
+		}
 		if a.Kind() == reflect.String {
 			return strings.Compare(a.String(), b.String())
 		}
+		if a.CanFloat() {
+			return int(a.Float()) - int(b.Float())
+		}
+		if a.Kind() == reflect.Bool {
+			if a.Bool() && !b.Bool() {
+				return 1
+			}
+			if !a.Bool() && b.Bool() {
+				return -1
+			}
+			return 0
+		}
 
-		return int(a.Int() - b.Int())
+		return -1
 	})
 
 	var keyString string
 	var valueString string
+	var keyValue interface{}
 	var err error
 	for _, k := range keys {
-		keyString, err = Serialize(k.Interface())
+		if k.Kind() == reflect.Struct {
+			return "", errors.New("Arrays and objects can not be used as keys. Received " + k.Kind().String())
+		}
+
+		// Cast array keys according to PHP specs
+		// https://www.php.net/manual/en/language.types.array.php#language.types.array.key-casts
+		keyValue = k.Interface()
+		if k.CanFloat() {
+			keyValue = int(k.Float())
+		} else if keyValue == nil || (k.Kind() == reflect.Pointer && k.IsNil()) {
+			keyValue = ""
+		} else if k.Kind() == reflect.Bool {
+			if k.Bool() {
+				keyValue = 1
+			} else {
+				keyValue = 0
+			}
+		}
+
+		keyString, err = Serialize(keyValue)
 		if err != nil {
 			return "", err
 		}
 
-		valueString, err = Serialize(data.MapIndex(k).Interface())
+		valueString, err = Serialize(data.MapIndex(k))
 		if err != nil {
 			return "", err
 		}
 
-		serialized.WriteString(strings.TrimRight(keyString, ";"))
+		serialized.WriteString(strings.TrimSuffix(keyString, ";"))
 		serialized.WriteString(";")
 		serialized.WriteString(valueString)
 	}
@@ -190,7 +217,7 @@ func structFieldCount(data reflect.Value) int {
 	}
 
 	var count int
-	for i := 0; i < data.NumField(); i++ {
+	for i := range data.NumField() {
 		count += structFieldCount(data.Field(i))
 	}
 

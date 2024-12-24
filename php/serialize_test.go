@@ -15,24 +15,52 @@ type testSimpleStruct struct {
 	Name string
 }
 
-func testSerialize(t *testing.T, expectation string, data interface{}) {
-	valueString, _ := Serialize(data)
+func testSerialize(t *testing.T, expectation string, data interface{}) error {
+	valueString, err := Serialize(data)
 
 	if valueString != expectation {
 		t.Errorf("expected %s, got %s", expectation, valueString)
 	}
+
+	return err
 }
 
 func TestSerializeArray(t *testing.T) {
+	four, five := 4, 5
+
+	testSerialize(t, "a:0:{}", []string{})
 	testSerialize(t, "a:3:{i:0;i:4;i:1;i:5;i:2;i:6;}", [3]int{4, 5, 6})
 	testSerialize(t, "a:2:{i:0;i:1;i:1;i:2;}", []int{1, 2})
+	testSerialize(t, "a:2:{i:0;i:4;i:1;i:5;}", []*int{&four, &five})
 	testSerialize(t, "a:3:{i:0;a:2:{i:0;i:1;i:1;i:2;}i:1;a:2:{i:0;i:3;i:1;i:4;}i:2;a:1:{i:0;i:5;}}", [][]int{{1, 2}, {3, 4}, {5}})
 }
 
 func TestSerializeMap(t *testing.T) {
+	testSerialize(t, "a:0:{}", map[string]string{})
+
 	// Remember, map keys are sorted alphabetically because otherwise the order cannot be predicted
 	testSerialize(t, "a:2:{s:4:\"That\";i:18;s:4:\"This\";i:7;}", map[string]int{"This": 7, "That": 18})
 	testSerialize(t, "a:3:{s:5:\"Maybe\";s:9:\"Misschien\";s:2:\"No\";s:3:\"Nee\";s:3:\"Yes\";s:2:\"Ja\";}", map[string]string{"Yes": "Ja", "No": "Nee", "Maybe": "Misschien"})
+
+	// Special key and value types
+	testSerialize(t, "a:2:{i:3;s:3:\"Bar\";i:8;s:3:\"Foo\";}", map[float64]string{8.8: "Foo", 3.5: "Bar"})
+	testSerialize(t, "a:2:{i:0;O:16:\"testSimpleStruct\":1:{s:4:\"Name\";s:3:\"Bar\";}i:1;O:16:\"testSimpleStruct\":1:{s:4:\"Name\";s:3:\"Foo\";}}", map[bool]testSimpleStruct{true: {"Foo"}, false: {"Bar"}})
+
+	// Pointer key/values
+	seven := 7
+	testSerialize(t, "a:1:{i:7;i:77;}", map[*int]int{&seven: 77})
+	testSerialize(t, "a:1:{i:7;i:7;}", map[*int]*int{&seven: &seven})
+	testSerialize(t, "a:1:{s:0:\"\";i:77;}", map[*int]int{nil: 77})
+}
+
+func TestInvalidArrayKeys(t *testing.T) {
+	err := testSerialize(t, "", map[testSimpleStruct]string{
+		testSimpleStruct{"Foo"}: "bar",
+	})
+
+	if err == nil {
+		t.Error("struct array keys should not be allowed but are")
+	}
 }
 
 func TestSerializeObject(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -49,11 +50,14 @@ func (j *QueueJob) WithTimeout(t int) *QueueJob {
 	return j
 }
 
-func (j *QueueJob) createJobPayload() jobPayload {
+func (j *QueueJob) createJobPayload() (jobPayload, error) {
 	php.WithStructNames(map[string]string{
 		reflect.ValueOf(j.Payload).Type().Name(): j.JobClass,
 	})
-	data, _ := php.Serialize(j.Payload)
+	data, err := php.Serialize(j.Payload)
+	if err != nil {
+		return jobPayload{}, err
+	}
 
 	id := uuid.New().String()
 
@@ -86,7 +90,7 @@ func (j *QueueJob) createJobPayload() jobPayload {
 		payload.Timeout = &j.Timeout
 	}
 
-	return payload
+	return payload, nil
 }
 
 func NewBroadcastEvent(jobClass string, payload interface{}) (QueueJob, error) {
@@ -132,7 +136,13 @@ func (c *RedisQueueConnection) WithContext(ctx context.Context) {
 
 func (c *RedisQueueConnection) Dispatch(job QueueJob) error {
 	queueName := c.prefix + job.Queue
-	payload, _ := json.Marshal(job.createJobPayload())
+
+	jobPayload, err := job.createJobPayload()
+	if err != nil {
+		return fmt.Errorf("unable to serialize payload: %w", err)
+	}
+
+	payload, _ := json.Marshal(jobPayload)
 
 	cmd := c.client.RPush(
 		c.context,
@@ -140,7 +150,7 @@ func (c *RedisQueueConnection) Dispatch(job QueueJob) error {
 		string(payload),
 	)
 	if cmd.Err() != nil {
-		return cmd.Err()
+		return fmt.Errorf("redis error: %w", cmd.Err())
 	}
 
 	cmd = c.client.RPush(
