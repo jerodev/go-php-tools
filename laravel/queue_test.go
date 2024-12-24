@@ -15,9 +15,13 @@ func TestSerializeJob(t *testing.T) {
 		Parts: []string{"foo", "bar"},
 	})
 
-	commandPayload := job.createJobPayload().Data.Command
-	if !strings.HasPrefix(commandPayload, `O:27:"App\Events\UpdateDashboards":1:{`) {
-		t.Errorf("Invalid serialized data: `%s`", commandPayload)
+	commandPayload, err := job.createJobPayload()
+	if err != nil {
+		t.Error("Error in job payload:", err)
+	}
+
+	if !strings.HasPrefix(commandPayload.Data.Command, `O:27:"App\Events\UpdateDashboards":1:{`) {
+		t.Errorf("Invalid serialized data: `%s`", commandPayload.Data.Command)
 	}
 }
 
@@ -26,9 +30,13 @@ func TestNewBroadcastEvent(t *testing.T) {
 		Parts: []string{"foo", "bar"},
 	})
 
-	commandPayload := job.createJobPayload().Data.Command
+	commandPayload, err := job.createJobPayload()
+	if err != nil {
+		t.Error("Error in job payload:", err)
+	}
+
 	expected := fmt.Sprintf(`O:%v:"%s":1:{s:5:"event";O:%v:"%s"`, len(broadcastJobClass), broadcastJobClass, len(`App\Events\UpdateDashboards`), `App\Events\UpdateDashboards`)
-	if !strings.HasPrefix(commandPayload, expected) {
-		t.Errorf("Invalid serialized data `%s`", commandPayload)
+	if !strings.HasPrefix(commandPayload.Data.Command, expected) {
+		t.Errorf("Invalid serialized data `%s`", commandPayload.Data.Command)
 	}
 }

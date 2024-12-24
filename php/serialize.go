@@ -21,7 +21,11 @@ func Serialize(data interface{}) (string, error) {
 		structNames = map[string]string{}
 	}
 
-	v := reflect.ValueOf(data)
+	var v reflect.Value
+	var ok bool
+	if v, ok = data.(reflect.Value); !ok {
+		v = reflect.ValueOf(data)
+	}
 
 	switch v.Kind() {
 	case reflect.Array, reflect.Slice:
@@ -33,33 +37,19 @@ func Serialize(data interface{}) (string, error) {
 		return "b:0;", nil
 	case reflect.Float32:
 	case reflect.Float64:
-		return "d:" + fmt.Sprintf("%v", data) + ";", nil
-	case reflect.Int:
-		return "i:" + strconv.Itoa(data.(int)) + ";", nil
-	case reflect.Int8:
-		return "i:" + strconv.Itoa(int(data.(int8))) + ";", nil
-	case reflect.Int16:
-		return "i:" + strconv.Itoa(int(data.(int16))) + ";", nil
-	case reflect.Int32:
-		return "i:" + strconv.Itoa(int(data.(int32))) + ";", nil
-	case reflect.Int64:
-		return "i:" + strconv.Itoa(int(data.(int64))) + ";", nil
+		return "d:" + fmt.Sprintf("%v", v.Float()) + ";", nil
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return "i:" + strconv.Itoa(int(v.Int())) + ";", nil
 	case reflect.Map:
 		return serializeMap(v)
 	case reflect.String:
-		return serializeString(data.(string)), nil
+		return serializeString(v.String()), nil
 	case reflect.Struct:
 		return serializeStruct(v)
-	case reflect.Uint:
-		return "i:" + strconv.Itoa(int(data.(uint))) + ";", nil
-	case reflect.Uint8:
-		return "i:" + strconv.Itoa(int(data.(uint8))) + ";", nil
-	case reflect.Uint16:
-		return "i:" + strconv.Itoa(int(data.(uint16))) + ";", nil
-	case reflect.Uint32:
-		return "i:" + strconv.Itoa(int(data.(uint32))) + ";", nil
-	case reflect.Uint64:
-		return "i:" + strconv.Itoa(int(data.(uint64))) + ";", nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return "i:" + strconv.Itoa(int(v.Uint())) + ";", nil
+	case reflect.Pointer:
+		return Serialize(v.Elem())
 	default:
 		return "", ErrUnsupportedDataType{DataType: v.Kind().String()}
 	}
@@ -91,7 +81,7 @@ func serializeArray(data reflect.Value) (string, error) {
 	var valueString string
 	var err error
 	for i := range data.Len() {
-		valueString, err = Serialize(reflect.Indirect(data.Index(i)).Interface())
+		valueString, err = Serialize(reflect.Indirect(data.Index(i)))
 		if err != nil {
 			return "", err
 		}
@@ -150,7 +140,7 @@ func serializeMap(data reflect.Value) (string, error) {
 		keyValue = k.Interface()
 		if k.CanFloat() {
 			keyValue = int(k.Float())
-		} else if keyValue == nil {
+		} else if keyValue == nil || (k.Kind() == reflect.Pointer && k.IsNil()) {
 			keyValue = ""
 		} else if k.Kind() == reflect.Bool {
 			if k.Bool() {
@@ -165,12 +155,12 @@ func serializeMap(data reflect.Value) (string, error) {
 			return "", err
 		}
 
-		valueString, err = Serialize(data.MapIndex(k).Interface())
+		valueString, err = Serialize(data.MapIndex(k))
 		if err != nil {
 			return "", err
 		}
 
-		serialized.WriteString(strings.TrimRight(keyString, ";"))
+		serialized.WriteString(strings.TrimSuffix(keyString, ";"))
 		serialized.WriteString(";")
 		serialized.WriteString(valueString)
 	}
