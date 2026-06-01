@@ -134,15 +134,15 @@ func (c *RedisQueueConnection) WithContext(ctx context.Context) {
 	c.context = ctx
 }
 
-func (c *RedisQueueConnection) Dispatch(job QueueJob) error {
+func (c *RedisQueueConnection) Dispatch(job QueueJob) (int64, error) {
 	queueName := c.prefix + job.Queue
 
-	jobPayload, err := job.createJobPayload()
+	payloadData, err := job.createJobPayload()
 	if err != nil {
-		return fmt.Errorf("unable to serialize payload: %w", err)
+		return 0, fmt.Errorf("unable to serialize payload: %w", err)
 	}
 
-	payload, _ := json.Marshal(jobPayload)
+	payload, _ := json.Marshal(payloadData)
 
 	cmd := c.client.RPush(
 		c.context,
@@ -150,7 +150,7 @@ func (c *RedisQueueConnection) Dispatch(job QueueJob) error {
 		string(payload),
 	)
 	if cmd.Err() != nil {
-		return fmt.Errorf("redis error: %w", cmd.Err())
+		return 0, fmt.Errorf("redis error: %w", cmd.Err())
 	}
 
 	cmd = c.client.RPush(
@@ -159,7 +159,7 @@ func (c *RedisQueueConnection) Dispatch(job QueueJob) error {
 		1,
 	)
 
-	return cmd.Err()
+	return cmd.Result()
 }
 
 func NewRedisQueueClient(laravelAppName string, opts *redis.Options) RedisQueueConnection {
